@@ -9,11 +9,11 @@ struct Message;
 template<typename T, typename MessageType>
 class MessageHandler : public IMessageHandler
 {
-    typedef void(T::*SignalPtr)(const MessageType& msg);
+    typedef void(T::*FunctionPtr)(const MessageType& msg);
     T* sender_;
-    SignalPtr signalToEmit_;
+    FunctionPtr signalToEmit_;
 public:
-    MessageHandler(T* sender, SignalPtr signalToEmit) :
+    MessageHandler(T* sender, FunctionPtr signalToEmit) :
         sender_(sender), signalToEmit_(signalToEmit) { }
 
     void handle(const QByteArray& data)

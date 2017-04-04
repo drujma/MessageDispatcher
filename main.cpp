@@ -1,11 +1,12 @@
 #include <QCoreApplication>
 
-#include "MessageInterface.h"
-#include <QDebug>
+#include "CommunicationController.h"
+
 int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
 
+    CommunicationController c;
 
     return app.exec();
 }

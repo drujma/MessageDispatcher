@@ -5,7 +5,9 @@
 #include "IMessageSender.h"
 #include "IMessageReceiver.h"
 #include "MessageInterface.h"
-#include "EltIpcMock.h"
+
+#include "IpcManager.h"
+
 
 class MessageReceiver;
 
@@ -14,6 +16,7 @@ class CommunicationController : public QObject, public IMessageReceiver, public 
     Q_OBJECT
 public:
     explicit CommunicationController(QObject *parent = 0);
+    ~CommunicationController();
 
     // IMessageSender interface
     void send(const Message &message);
@@ -22,12 +25,11 @@ public:
     void handle(unsigned messageID, const QByteArray &data);
 signals:
     void systemStatusReceived(const SystemStatus&);
-
 private:
-    void messageReceived(const QString& messageId, const QByteArray& data);
+    void messageReceived(const QString& messageId, const QString& appId, const QByteArray& data);
 private:
-    EltIpcMock eltIpc_;
-    MessageReceiver* messageReceiver_;
+    eltipc::IpcManager* ipcManager_;
+    MessageReceiver*    messageReceiver_;
 };
 
 #endif // COMMUNICATIONCONTROLLER_H
