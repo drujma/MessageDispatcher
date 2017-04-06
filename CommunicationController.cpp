@@ -1,72 +1,52 @@
 #include "CommunicationController.h"
-#include "MessageInterface.h"
+#include "ICommunicationAdapter.h"
+#include <QDebug>
 
-#include "MessageHandler.h"
-
-#include <QCoreApplication>
-
-class MessageReceiver : public IMessageReceiver
+CommunicationController::CommunicationController(ICommunicationAdapter* adapter) :
+    adapter_(adapter)
 {
-public:
-    MessageReceiver(CommunicationController* controller) : controller_(controller) { }
-    template<typename MessageType, typename FunctionPtr>
-    void registerMessage(unsigned messageId, FunctionPtr ptr)
-    {
-        messageHandlers_[messageId] = new MessageHandler<CommunicationController, MessageType>(controller_, ptr);
-    }
-
-    void handle(unsigned messageID, const QByteArray &data){
-        messageHandlers_[messageID]->handle(data);
-    }
-
-private:
-    CommunicationController* controller_;
-    QMap<unsigned, IMessageHandler*> messageHandlers_;
-};
-
-CommunicationController::CommunicationController(QObject *parent) :
-    QObject(parent),
-    messageReceiver_(new MessageReceiver(this)),
-    ipcManager_(new eltipc::IpcManager(true))
-{
-    ipcManager_->setHostServer("10.180.60.104");
-    ipcManager_->configure("DSP_ID_1", QCoreApplication::applicationDirPath() + "/../config.xml");
-    ipcManager_->start();
-
-    messageReceiver_->registerMessage<SystemStatus>(HmiInterface::MESSAGE_ID_SYSTEM_STATUS, &CommunicationController::systemStatusReceived);
-
-
-    connect(ipcManager_, &eltipc::IpcManager::receiveMessage, this, &CommunicationController::messageReceived);
+    adapter_->setMessageReceiver(this);
 }
 
 CommunicationController::~CommunicationController()
 {
-    ipcManager_->stop();
-
-    delete messageReceiver_;
-    delete ipcManager_;
+    qDeleteAll(handlers_);
 }
 
-void CommunicationController::send(const Message &message)
+void CommunicationController::handle(unsigned messageID, const QByteArray& data)
 {
-    const QString& messageID(HmiInterface::toString(message.id));
+    IMessageHandler* handler  = handlers_.value(messageID, nullptr);
 
-    QByteArray data;
-    QDataStream stream(&data, QIODevice::WriteOnly);
-    message.serialize(stream);
-
-    ipcManager_->send(messageID, data);
+    if(handler){
+        handler->handle(data);
+    }else{
+        qWarning() << "Handler not registered for messageID" << messageID;
+    }
 }
 
-void CommunicationController::handle(unsigned messageID, const QByteArray &data)
+void CommunicationController::handle(unsigned sender, unsigned messageID, const QByteArray& data)
 {
-    messageReceiver_->handle(messageID, data);
+    //TODO add handle with sender
+    IMessageHandler* handler  = handlers_.value(messageID, nullptr);
+
+    if(handler){
+        handler->handle(data);
+    }else{
+        qWarning() << "Handler not registered for messageID" << messageID;
+    }
 }
 
-void CommunicationController::messageReceived(const QString &messageId, const QString& appId, const QByteArray &data)
+void CommunicationController::send(const IMessage& message)
 {
-    Q_UNUSED(appId)
+    adapter_->send(message);
+}
 
-    unsigned id = HmiInterface::toEnum(messageId);
-    handle(id, data);
+void CommunicationController::send(unsigned destination, const IMessage& message)
+{
+    adapter_->send(destination, message);
+}
+
+void CommunicationController::setMessageEnabled(unsigned messageID, bool isEnabled)
+{
+    adapter_->setMessageEnabled(messageID, isEnabled);
 }

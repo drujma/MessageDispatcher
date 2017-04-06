@@ -4,25 +4,25 @@
 #include "IMessageHandler.h"
 #include <QDataStream>
 
-struct Message;
+struct IMessage;
 
 template<typename T, typename MessageType>
 class MessageHandler : public IMessageHandler
 {
     typedef void(T::*FunctionPtr)(const MessageType& msg);
-    T* sender_;
-    FunctionPtr signalToEmit_;
+    T* caller_;
+    FunctionPtr callback_;
 public:
-    MessageHandler(T* sender, FunctionPtr signalToEmit) :
-        sender_(sender), signalToEmit_(signalToEmit) { }
+    MessageHandler(T* caller, FunctionPtr callback) :
+        caller_(caller), callback_(callback) { }
 
     void handle(const QByteArray& data)
     {
         QDataStream stream(data);
         MessageType message;
-        message.deserialize(stream);
+        //message.deserialize(stream);
 
-        (sender_->*signalToEmit_)(message);
+        (caller_->*callback_)(message);
     }
 };
 

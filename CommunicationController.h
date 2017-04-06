@@ -1,35 +1,42 @@
 #ifndef COMMUNICATIONCONTROLLER_H
 #define COMMUNICATIONCONTROLLER_H
 
-#include <QObject>
-#include "IMessageSender.h"
-#include "IMessageReceiver.h"
-#include "MessageInterface.h"
+#include <QMap>
 
-#include "IpcManager.h"
+#include "IMessageSenderReceiver.h"
+#include "MessageHandler.h"
 
+class ICommunicationAdapter;
 
-class MessageReceiver;
-
-class CommunicationController : public QObject, public IMessageReceiver, public IMessageSender
+class CommunicationController : public IMessageSenderReceiver
 {
-    Q_OBJECT
 public:
-    explicit CommunicationController(QObject *parent = 0);
-    ~CommunicationController();
-
-    // IMessageSender interface
-    void send(const Message &message);
+    explicit CommunicationController(ICommunicationAdapter* adapter);
+    virtual ~CommunicationController();
 
     // IMessageReceiver interface
-    void handle(unsigned messageID, const QByteArray &data);
-signals:
-    void systemStatusReceived(const SystemStatus&);
-private:
-    void messageReceived(const QString& messageId, const QString& appId, const QByteArray& data);
-private:
-    eltipc::IpcManager* ipcManager_;
-    MessageReceiver*    messageReceiver_;
+    virtual void handle(unsigned messageID, const QByteArray& data);
+    virtual void handle(unsigned sender, unsigned messageID, const QByteArray& data);
+
+    // IMessageSender interface
+    virtual void send(const IMessage& message);
+    virtual void send(unsigned destination, const IMessage& message);
+
+    virtual void setMessageEnabled(unsigned messageID, bool isEnabled);
+
+    /*!
+     * M is the message type
+     * T is the caller
+     * F is the function to call
+     */
+    template<typename M, typename T, typename F>
+    void registerHandler(unsigned messageID, T* caller, F callback){
+        handlers_[messageID] = new MessageHandler<T, M>(caller, callback);
+    }
+
+protected:
+    ICommunicationAdapter* adapter_;
+    QMap<unsigned, IMessageHandler*> handlers_;
 };
 
 #endif // COMMUNICATIONCONTROLLER_H

@@ -7,7 +7,7 @@ class QDataStream;
  * \brief The Message struct is an Interface for all messages
  *        used within the application
  */
-struct Message
+struct IMessage
 {
     unsigned id;
 
