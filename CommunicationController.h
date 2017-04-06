@@ -30,8 +30,10 @@ public:
      * F is the function to call
      */
     template<typename M, typename T, typename F>
-    void registerHandler(unsigned messageID, T* caller, F callback){
-        handlers_[messageID] = new MessageHandler<T, M>(caller, callback);
+    typename std::enable_if<std::is_base_of<IMessage, M>::value, void>::type
+    registerHandler(T* caller, F callback){
+        M message;
+        handlers_[message.id] = new MessageHandler<T, M>(caller, callback);
     }
 
 protected:
